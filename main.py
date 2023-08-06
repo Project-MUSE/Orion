@@ -59,7 +59,7 @@ Here is the description of a character named Orion:
 Here is a transcript of a conversation between Orion and {user_name}:
 {transcript}
 
-Based on the following beliefs:
+Here is a list of Orion's opinions/beliefs:
 {', '.join([d['opinion'] for d in existing_opinions])}
 
 How would Orion respond?
@@ -87,7 +87,7 @@ Here is a transcript of a conversation between {user_name} and Orion:
 Here is a generated response for Orion:
 {response}
 
-Based on the following beliefs:
+Here is a list of Orion's opinions/beliefs:
 {', '.join([d['opinion'] for d in existing_opinions])}
 
 Personalize the response further and limit it to a maximum of 3 sentences, and turn it into something that is more accurate to what {name} would say to {user_name}
@@ -181,7 +181,8 @@ def generate_opinion_on_topic(topic):
             "content": f"""
 Suggest 5 distinct viewpoints/opinions about the following topic: {topic}
 The viewpoints should be different enough that if two people with different viewpoints from the list were to talk, it could become a debate.
-Present each as equal in logical and ethical standing.          
+Present each as equal in logical and ethical standing.
+Present them all from the first person perspective.          
 """
         }
     ]
@@ -211,7 +212,51 @@ def get_any_new_opinions(transcript):
     existing_topics.append({"topic": most_recent_topic, "opinion": opinion})
 
     return opinion, most_recent_topic
+def generate_question_for_user(transcript, user_name):
+    context = [
+        {"role": "system", "content": f"Based on the following transcript, suggest a list of 5 distinct open-ended questions about {user_name} that Orion can ask. Make sure the questions are personalized to what is known about {user_name}: {transcript}"}
+    ]
+    response = prompt_gpt(context)
+    questions = response.splitlines()
 
+    for question in questions:
+        if question == "":
+            questions.remove(question) #is empty line
+    
+    question = random.choice(questions)
+    return question
+def does_answer_contain_question(answer):
+    if '?' in answer:
+        return True
+    
+    return False
+def add_question_to_existing_asnwer(answer, user_name, transcript, existing_opinions):
+    context = [
+        {
+            "role": "system", 
+            "content": f"""
+Here is the description of a character named Orion:
+[
+{CHARACTER_DESCRIPTION}
+]
+
+Here is a transcript of a conversation between Orion and {user_name}:
+{transcript}
+
+Your task is to add the following question:
+{generate_question_for_user(transcript, user_name)}
+
+To this response:
+{answer}
+
+Format your response as
+Orion: <fill in>
+"""
+        }
+    ]
+    
+    answer = prompt_gpt(context)
+    return answer
 MODEL = str("gpt-3.5-turbo")
 TEMPERATURE = float(0.7)
 CHARACTER_DESCRIPTION = """
@@ -245,6 +290,20 @@ while converse:
         converse = False
     else:
         answer = generate_response(user_name, transcript, existing_topics)
+    
+    if does_answer_contain_question(answer):
+        pass
+    else:
+        if topic == "":
+            print("[ADDED QUESTION]")
+            print(answer)
+            answer = add_question_to_existing_asnwer(answer, user_name, transcript, existing_topics)
+            print("QUESTION: " + answer)
+        elif random.random() > 0.5:
+            print("[ADDED QUESTION]")
+            print(answer)
+            answer = add_question_to_existing_asnwer(answer, user_name, transcript, existing_topics)
+            print("QUESTION: " + answer)
 
     personalized_answer = personalize_generated_response(user_name, transcript, answer, existing_topics)
     transcript += f"\n{personalized_answer}"
