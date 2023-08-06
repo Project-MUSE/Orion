@@ -1,6 +1,7 @@
 import openai
 import json
 import time
+import random
 from json import dumps
 
 #########################
@@ -74,7 +75,7 @@ Orion: <fill in>
 
     answer = prompt_gpt(context)
     return answer
-def personalize_generated_response(name, user_name, transcript, response):
+def personalize_generated_response(user_name, transcript, response):
     context = [
         {
             "role": "system", 
@@ -188,8 +189,26 @@ Orion: <fill in>
 
     answer = prompt_gpt(context)
     return answer
+def generate_opinion_on_topic(topic):
+    context = [
+        {
+            "role": "system", 
+            "content": f"""
+Suggest 10 distinct viewpoints/opinions about the following topic: {topic}
+The viewpoints should be different enough that if two people with different viewpoints from the list were to talk, it could become a debate.
+Present each as equal in logical and ethical standing.          
+"""
+        }
+    ]
+    response = prompt_gpt(context)
+    topics = response.splitlines()
 
-
+    for topic in topics:
+        if topic == "":
+            topics.remove(topic) #is empty line
+    
+    opinion = random.choice(topics)
+    return opinion
 
 MODEL = str("gpt-3.5-turbo")
 TEMPERATURE = float(0.7)
@@ -206,7 +225,7 @@ while converse:
     question = input("\n" + user_name + ": ")
     transcript += f"\n{user_name}: {question}"
 
-    if len(transcript) > 100:
+    if len(transcript) > 10000:
         answer = end_conversation(user_name, transcript)
         converse = False
     else:
