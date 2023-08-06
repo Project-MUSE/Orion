@@ -3,6 +3,7 @@ import json
 import time
 import random
 from json import dumps
+from keybert import KeyBERT
 
 #########################
 #        UTILITY        #
@@ -213,6 +214,8 @@ Present each as equal in logical and ethical standing.
 MODEL = str("gpt-3.5-turbo")
 TEMPERATURE = float(0.7)
 
+topic_extractor = KeyBERT('distilbert-base-nli-mean-tokens')
+
 openai.api_key = get_api_key("openai")
 
 transcript = ""
@@ -235,6 +238,7 @@ while converse:
     transcript += f"\n{personalized_answer}"
 
     print("\n" + f"{personalized_answer}")
+    print(f"{divider()}\nTopics:\n{topic_extractor.extract_keywords(transcript)}")
    
     if user_name == "User":
         user_name = find_user_name(transcript, name)
