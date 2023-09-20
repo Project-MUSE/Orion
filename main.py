@@ -56,13 +56,14 @@ Here is the description of a character named Orion:
 {CHARACTER_DESCRIPTION}
 ]
 
-Here is a transcript of a conversation between Orion and {user_name}:
-{transcript}
-
 Here is a list of Orion's opinions/beliefs:
 {', '.join([d['opinion'] for d in existing_opinions])}
 
+Here is a transcript of a conversation between Orion and {user_name}:
+{transcript}
+
 How would Orion respond?
+ORION STRICTLY CANNOT REPEAT HIMSELF
 Format your response as
 Orion: <fill in>
 """
@@ -76,24 +77,33 @@ def personalize_generated_response(user_name, transcript, response, existing_opi
         {
             "role": "system", 
             "content": f"""
-Here is the description of a character named Orion:
-[
-{CHARACTER_DESCRIPTION}
-]
-
-Here is a transcript of a conversation between {user_name} and Orion:
+Here is a transcript of a conversation between Orion and {user_name}:
 {transcript}
 
-Here is a generated response for Orion:
+Make the following response more conversational:
 {response}
 
-Here is a list of Orion's opinions/beliefs:
-{', '.join([d['opinion'] for d in existing_opinions])}
-
-Personalize the response further and limit it to a maximum of 3 sentences, and turn it into something that is more accurate to what {name} would say to {user_name}
+Limit the response to a maximum of 3 sentences.
+Do not repeat anything in the transcript.
 
 Format your response as:
 Orion: <fill in>
+
+Examples of conversational responses:
+1.
+Question -> Nicolas: Hi there! I'm Nicolas.
+Basic -> Orion: Hey Nicolas! It's great to meet you. I'm Orion. How can I assist you today?
+Conversational -> Orion: Hey Nicolas! It's great to meet you. I'm Orion. How's your day going?
+
+2.
+Question -> Nicolas: My day is going quite well, where'd you get the name Orion from?
+Basic -> Orion: Hey Nicolas! Nice to meet you too. I'm Orion. How's your day going? Is there a story behind your name?
+Conversational -> Orion: I guess my parents gave it to me, does your name have a story behind it?
+
+3.
+Question -> Nico: Just looking to have a conversation, what's your name btw?
+Basic -> Orion: Well, Nico, it's a delight to make your acquaintance. My name is Orion. It's a name that holds a certain mystique, wouldn't you agree? It has a celestial quality to it, like a shining star in the night sky. But enough about me, let's focus on you. What topics interest you the most in our conversation today?
+Conversational -> Orion: Well, Nico, it's a delight to make your acquaintance. My name is Orion. It has a celestial quality to it, like a shining star in the night sky.
 """
         }
     ]
@@ -177,7 +187,7 @@ Orion: <fill in>
 def generate_opinion_on_topic(topic):
     context = [
         {
-            "role": "system", 
+            "role": "user", 
             "content": f"""
 Suggest 5 distinct viewpoints/opinions about the following topic: {topic}
 The viewpoints should be different enough that if two people with different viewpoints from the list were to talk, it could become a debate.
@@ -197,17 +207,20 @@ Present them all from the first person perspective.
     return opinion
 def get_most_recent_topic(transcript):
     context = [
-        {"role": "system", "content": f"In 1 to 2 words, what is the most recent intellectual topic discussed in the following conversation transcript: {transcript}"}
+        {"role": "user", "content": f"Using strictly 1 to 2 words, describe the most recent intellectual topic discussed in the following conversation transcript (if there are none output N/A): {transcript}"}
     ]
     topic = prompt_gpt(context)
     return topic 
 def get_any_new_opinions(transcript):
     most_recent_topic = get_most_recent_topic(transcript)
-
+    
     for topic in existing_topics:
         if topic["topic"]  == most_recent_topic:
             return "", ""
     
+    if most_recent_topic == "N/A":
+        return "", ""
+
     opinion = generate_opinion_on_topic(most_recent_topic)
     existing_topics.append({"topic": most_recent_topic, "opinion": opinion})
 
@@ -224,6 +237,7 @@ def generate_question_for_user(transcript, user_name):
             questions.remove(question) #is empty line
     
     question = random.choice(questions)
+    print(question)
     return question
 def does_answer_contain_question(answer):
     if '?' in answer:
@@ -243,7 +257,7 @@ Here is the description of a character named Orion:
 Here is a transcript of a conversation between Orion and {user_name}:
 {transcript}
 
-Your task is to add the following question:
+Your task is to incorperate the following question:
 {generate_question_for_user(transcript, user_name)}
 
 To this response:
